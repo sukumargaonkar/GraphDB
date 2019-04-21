@@ -34,8 +34,7 @@ public class ClusterAgent {
 			nodes[i] = Member.builder().withId(members[i]).withAddress(new Address(HOST, PORT + i)).build();
 		}
 
-		Atomix atomix = Atomix.builder().withMemberId(member)
-				.withAddress(new Address("localhost", Integer.parseInt(portID)))
+		Atomix atomix = Atomix.builder().withMemberId(member).withAddress(new Address(HOST, Integer.parseInt(portID)))
 				.withMembershipProvider(BootstrapDiscoveryProvider.builder().withNodes(nodes).build())
 				.withManagementGroup(RaftPartitionGroup.builder(MANAGEMENT_PARTITION_NAME)
 						.withDataDirectory(new File(clusterProps.getProperty("managementData") + member))
