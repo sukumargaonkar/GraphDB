@@ -6,6 +6,7 @@ import com.graphdb.agent.ClusterAgent;
 
 import io.atomix.core.Atomix;
 import io.atomix.core.map.DistributedMap;
+import io.atomix.core.multimap.AtomicMultimapBuilder;
 
 public class GraphDBApplication {
 
@@ -24,7 +25,8 @@ public class GraphDBApplication {
 
 		atomix.start().join();
 
-		DistributedMap<Object, Object> map = atomix.mapBuilder("graph-map").withCacheEnabled().build();
+		AtomicMultimapBuilder<String, String> multimapBuilder = atomix.<String, String>atomicMultimapBuilder("my-multimap");
+		DistributedMap<String, String> map = atomix.<String, String>mapBuilder("graph-map").withCacheEnabled().build();
 
 		map.put("foo", "Hello world!");
 
