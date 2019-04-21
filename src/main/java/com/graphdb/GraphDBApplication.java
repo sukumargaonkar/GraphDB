@@ -21,7 +21,8 @@ public class GraphDBApplication {
 		Atomix atomix = ClusterAgent.getDefaultAgent(memberID, memberPort);
 
 		System.out.println("Starting Cluster!");
-		System.out.println(atomix.start().join());
+
+		atomix.start().join();
 
 		DistributedMap<Object, Object> map = atomix.mapBuilder("graph-map").withCacheEnabled().build();
 
