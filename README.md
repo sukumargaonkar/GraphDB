@@ -1,3 +1,3 @@
 # GraphDB
 
-A simple NoSQL Distributed Graph store that utilizes Raft to achieve consensus between nodes.
+A simple NoSQL Distributed Graph store that utilizes Raft to achieve consensus between nodes. The project makes use of [Atomix](https://atomix.io/), a reactive Java framework for building fault tolerant distributed systems. It utilizes the Raft protocol for achieving consensus between its nodes and also provides several datastructures which are called primitives in its lingo for developers open to create a wide variety of applications.
