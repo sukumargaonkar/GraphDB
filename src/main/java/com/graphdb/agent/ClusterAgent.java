@@ -29,10 +29,10 @@ public class ClusterAgent {
 				.withMembershipProvider(BootstrapDiscoveryProvider.builder().withNodes(nodes).build())
 				.withManagementGroup(RaftPartitionGroup.builder("system")
 						.withDataDirectory(
-								new File(System.getProperty("user.dir") + "/ClusterDirs/ClusterMetaData/" + member))
+								new File(System.getProperty("user.dir") + "/clusterDir/clusterMeta/" + member))
 						.withNumPartitions(1).withMembers(members).build())
 				.withPartitionGroups(RaftPartitionGroup.builder("raft")
-						.withDataDirectory(new File(System.getProperty("user.dir") + "/ClusterDirs/Data/" + member))
+						.withDataDirectory(new File(System.getProperty("user.dir") + "/clusterDir/data/" + member))
 						.withPartitionSize(2).withNumPartitions(10).withMembers(members).build())
 				.build();
 		return atomix;
