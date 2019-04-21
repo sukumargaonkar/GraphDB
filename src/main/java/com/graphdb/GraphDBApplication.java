@@ -5,11 +5,12 @@ import java.util.Objects;
 
 import org.apache.log4j.Logger;
 
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.graphdb.agent.ClusterAgent;
+import com.graphdb.agent.JsonAgent;
 import com.graphdb.model.GraphModel;
 
 import io.atomix.core.Atomix;
@@ -44,16 +45,13 @@ public class GraphDBApplication {
 		graph.withProtocol(protocol);
 		graph.buildAtomicMultiMap();
 
-		Multimap<String, String> multimap = ArrayListMultimap.create();
+		Multimap<String, String> multimap = HashMultimap.create();
 		multimap.put("hi", "hello");
 		multimap.put("hi", "kk");
 
 		// Json builder
-		GsonBuilder gsonBuilder = new GsonBuilder();
-		gsonBuilder.setPrettyPrinting();
-		Gson gson = gsonBuilder.create();
-
-		String jsonGraph = gson.toJson(multimap.asMap());
+		JsonAgent<String> jsonAgent = new JsonAgent<String>();
+		String jsonGraph = jsonAgent.toJson(multimap.asMap());
 
 		System.out.println(jsonGraph);
 
