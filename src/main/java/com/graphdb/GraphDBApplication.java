@@ -1,4 +1,4 @@
-package GraphDB;
+package com.graphdb;
 
 import org.apache.log4j.Logger;
 
