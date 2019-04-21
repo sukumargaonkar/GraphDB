@@ -7,14 +7,12 @@ import org.junit.Test;
 /**
  * Unit test for simple ClusterInitializer.
  */
-public class ClusterInitializerTest
-{
-    /**
-     * Rigorous Test :-)
-     */
-    @Test
-    public void shouldAnswerWithTrue()
-    {
-        assertTrue( true );
-    }
+public class ClusterInitializerTest {
+	/**
+	 * Rigorous Test :-)
+	 */
+	@Test
+	public void shouldAnswerWithTrue() {
+		assertTrue(true);
+	}
 }
