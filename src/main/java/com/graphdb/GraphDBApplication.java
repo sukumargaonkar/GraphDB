@@ -7,8 +7,6 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.graphdb.agent.ClusterAgent;
 import com.graphdb.agent.JsonAgent;
 import com.graphdb.model.GraphModel;
