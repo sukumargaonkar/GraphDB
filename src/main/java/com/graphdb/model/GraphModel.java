@@ -1,12 +1,14 @@
 package com.graphdb.model;
 
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 
 import io.atomix.core.Atomix;
 import io.atomix.core.multimap.AsyncAtomicMultimap;
 import io.atomix.core.multimap.AtomicMultimap;
 import io.atomix.core.multimap.AtomicMultimapBuilder;
 import io.atomix.primitive.protocol.ProxyProtocol;
+import io.atomix.utils.time.Versioned;
 
 public class GraphModel<K, V> {
 
@@ -23,6 +25,10 @@ public class GraphModel<K, V> {
 
 	public void withProtocol(ProxyProtocol protocol) {
 		atomicMultiMapBuilder.withProtocol(protocol);
+	}
+
+	public void withCacheSize(int size) {
+		atomicMultiMapBuilder.withCacheSize(size);
 	}
 
 	public void setReadOnly() {
@@ -51,6 +57,18 @@ public class GraphModel<K, V> {
 		} else {
 			atomicMultiMap.putAll(key, values);
 		}
+	}
+
+	public Object getNode(K key) {
+		if (async) {
+			return getNodeAsync(key);
+		} else {
+			return atomicMultiMap.get(key);
+		}
+	}
+
+	public CompletableFuture<Versioned<Collection<V>>> getNodeAsync(K key) {
+		return asyncAtomicMultiMap.get(key);
 	}
 
 }
