@@ -28,7 +28,7 @@ public class GraphDBApplication {
 
 		logger.info("Member ID:" + memberID + " memberPort:" + memberPort);
 
-		Atomix clusterAgent = ClusterAgent.getDefaultAgent(memberID, memberPort);
+		Atomix clusterAgent = ClusterAgent.getDefaultAgent(memberID, memberPort, false);
 
 		logger.info("Starting Cluster!");
 

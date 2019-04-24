@@ -3,6 +3,7 @@ package com.graphdb.agent;
 import java.io.File;
 import java.util.Properties;
 
+import io.atomix.core.AtomixBuilder;
 import org.apache.log4j.Logger;
 
 import com.graphdb.properties.GraphDBProperties;
@@ -22,7 +23,7 @@ public class ClusterAgent {
 	private final static String HOST = "localhost";
 	private final static int PORT = 8800;
 
-	public static Atomix getDefaultAgent(String member, String portID) {
+	public static Atomix getDefaultAgent(String member, String portID, boolean isClient) {
 
 		logger.info("Creating Atomix configuration");
 
@@ -34,15 +35,17 @@ public class ClusterAgent {
 			nodes[i] = Member.builder().withId(members[i]).withAddress(new Address(HOST, PORT + i)).build();
 		}
 
-		Atomix atomix = Atomix.builder().withMemberId(member).withAddress(new Address(HOST, Integer.parseInt(portID)))
-				.withMembershipProvider(BootstrapDiscoveryProvider.builder().withNodes(nodes).build())
-				.withManagementGroup(RaftPartitionGroup.builder(MANAGEMENT_PARTITION_NAME)
-						.withDataDirectory(new File(clusterProps.getProperty("managementData") + member))
-						.withNumPartitions(1).withMembers(members).build())
-				.withPartitionGroups(RaftPartitionGroup.builder(PARTITION_GROUP_NAME)
-						.withDataDirectory(new File(clusterProps.getProperty("propertyData") + member))
-						.withPartitionSize(2).withNumPartitions(10).withMembers(members).build())
-				.build();
-		return atomix;
+		AtomixBuilder atomixBuilder = Atomix.builder().withMemberId(member).withAddress(new Address(HOST, Integer.parseInt(portID)))
+				.withMembershipProvider(BootstrapDiscoveryProvider.builder().withNodes(nodes).build());
+
+		if(!isClient) {
+			atomixBuilder.withManagementGroup(RaftPartitionGroup.builder(MANAGEMENT_PARTITION_NAME)
+					.withDataDirectory(new File(clusterProps.getProperty("managementData") + member))
+					.withNumPartitions(1).withMembers(members).build())
+					.withPartitionGroups(RaftPartitionGroup.builder(PARTITION_GROUP_NAME)
+							.withDataDirectory(new File(clusterProps.getProperty("propertyData") + member))
+							.withPartitionSize(2).withNumPartitions(10).withMembers(members).build());
+		}
+		return atomixBuilder.build();
 	}
 }
