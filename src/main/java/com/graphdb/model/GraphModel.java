@@ -19,17 +19,17 @@ public class GraphModel<K, V> {
 	private AtomicMapBuilder<K, Multimap<String, Long>> from2TypeBuilder;
 	private AtomicMapBuilder<K, Multimap<K, Long>> from2ToBuilder;
 	private AtomicMap<K, V> nodes;
-	private AsyncAtomicMap<K, V> asyncNodes;
-	private AtomicMap<Long, Relation> relations;
-	private AsyncAtomicMap<Long, Relation> asyncRelations;
-	private AtomicMap<K, Multimap<String, Long>> from2Type;
-	private AsyncAtomicMap<K, Multimap<String, Long>> AsyncFrom2Type;
-	private AtomicMap<K, Multimap<K, Long>> from2to;
-	private AsyncAtomicMap<K, Multimap<K, Long>> AsyncFrom2to;
+	private AsyncAtomicMap<K, V> asyncNodesMap;
+	private AtomicMap<Long, Relation> relationsMap;
+	private AsyncAtomicMap<Long, Relation> asyncRelationsMap;
+	private AtomicMap<K, Multimap<String, Long>> from2TypeMap;
+	private AsyncAtomicMap<K, Multimap<String, Long>> asyncFrom2TypeMap;
+	private AtomicMap<K, Multimap<K, Long>> from2toMap;
+	private AsyncAtomicMap<K, Multimap<K, Long>> asyncFrom2ToMap;
 
-	private AtomicIdGenerator relationsIdGenerator;
+	private static AtomicIdGenerator relationsIdGenerator;
 
-	class Relation{
+	class Relation {
 		long id;
 		K from;
 		K to;
@@ -56,7 +56,6 @@ public class GraphModel<K, V> {
 	public void withProtocol(ProxyProtocol protocol) {
 		nodesMapBuilder.withProtocol(protocol);
 		relationsMapBuilder.withProtocol(protocol);
-
 	}
 
 	public void withCacheSize(int size) {
@@ -72,14 +71,14 @@ public class GraphModel<K, V> {
 	public void buildAtomicMultiMap() {
 		nodes = nodesMapBuilder.build();
 
-		relations = relationsMapBuilder.build();
-		from2to = from2ToBuilder.build();
-		from2Type = from2TypeBuilder.build();
+		relationsMap = relationsMapBuilder.build();
+		from2toMap = from2ToBuilder.build();
+		from2TypeMap = from2TypeBuilder.build();
 
-		asyncNodes = nodes.async();
-		asyncRelations = relations.async();
-		AsyncFrom2to = from2to.async();
-		AsyncFrom2Type = from2Type.async();
+		asyncNodesMap = nodes.async();
+		asyncRelationsMap = relationsMap.async();
+		asyncFrom2ToMap = from2toMap.async();
+		asyncFrom2TypeMap = from2TypeMap.async();
 	}
 
 	public boolean addNode(K key, V value) {
@@ -90,53 +89,49 @@ public class GraphModel<K, V> {
 			return false;
 		}
 	}
-	public CompletableFuture addNodeAsync(K key, V value) {
-			if (!nodes.containsKey(key)) {
-				nodes.put(key, value);
-				return asyncNodes.put(key, value);
-			} else {
-				CompletableFuture future = new CompletableFuture();
-				future.completeExceptionally(new Exception("Node already exists."));
-				return future;
-			}
+
+	public CompletableFuture<?> addNodeAsync(K key, V value) {
+		if (!nodes.containsKey(key)) {
+			return asyncNodesMap.put(key, value);
+		} else {
+			throw new RuntimeException("Node already exists.");
 		}
+	}
 
 	public V getNode(K key) {
 		if (nodes.containsKey(key)) {
 			return nodes.get(key).value();
 		} else {
-			return null;
+			throw new RuntimeException("Value for key : " + key + " does not exist");
 		}
 	}
 
 	public CompletableFuture<Versioned<V>> getNodeAsync(K key) {
 		if (nodes.containsKey(key)) {
-			return asyncNodes.get(key);
-		}else{
-			CompletableFuture future = new CompletableFuture();
-			future.completeExceptionally(new Exception("Node already exists."));
-			return future;
+			return asyncNodesMap.get(key);
+		} else {
+			throw new RuntimeException("Node already exists.");
 		}
 	}
 
-	public boolean addRelation(K from, K to, String type, V value, boolean biDirectional){
+	public boolean addRelation(K from, K to, String type, V value, boolean biDirectional) {
 
-		if(!nodes.containsKey(from) || !nodes.containsKey(to)){
+		if (!nodes.containsKey(from) || !nodes.containsKey(to)) {
 			return false;
 		}
 
 //		Create Relation Object
-		Relation rel = new Relation(relationsIdGenerator.nextId(), from, to, value, biDirectional);
-		relations.put(rel.id, rel);
+		Relation relation = new Relation(relationsIdGenerator.nextId(), from, to, value, biDirectional);
+		relationsMap.put(relation.id, relation);
 
 //		Add Index to the Relation Object
-		if(!from2to.containsKey(from))
-			from2to.put(from, ArrayListMultimap.create());
-		from2to.get(from).value().put(to, rel.id);
+		if (!from2toMap.containsKey(from))
+			from2toMap.put(from, ArrayListMultimap.create());
+		from2toMap.get(from).value().put(to, relation.id);
 
-		if(!from2Type.containsKey(from))
-			from2Type.put(from, ArrayListMultimap.create());
-		from2Type.get(from).value().put(type, rel.id);
+		if (!from2TypeMap.containsKey(from))
+			from2TypeMap.put(from, ArrayListMultimap.create());
+		from2TypeMap.get(from).value().put(type, relation.id);
 
 		return true;
 	}
