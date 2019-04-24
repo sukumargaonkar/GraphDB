@@ -38,25 +38,24 @@ public class GraphDBApplication {
 
 		clusterAgent.start().join();
 
-		GraphModel<String, String> graph = new GraphModel<String, String>(clusterAgent, "multimap", false);
+		GraphModel<String, Multimap<String, String>> graph = new GraphModel<>(clusterAgent, "multimap");
 		ProxyProtocol protocol = MultiRaftProtocol.builder().withReadConsistency(ReadConsistency.LINEARIZABLE).build();
 		graph.withProtocol(protocol);
 		graph.buildAtomicMultiMap();
 
-		Multimap<String, String> multimap = HashMultimap.create();
-		multimap.put("hi", "hello");
-		multimap.put("hi", "kk");
+		Multimap<String, String> nodeData1 = HashMultimap.create();
+		nodeData1.put("nodeId", "Node_1");
+		graph.addNode("Node_1", nodeData1);
 
-		// Json builder
-		JsonAgent<String> jsonAgent = new JsonAgent<String>();
-		String jsonGraph = jsonAgent.toJson(multimap.asMap());
+		Multimap<String, String> nodeData2 = HashMultimap.create();
+		nodeData1.put("nodeId", "Node_2");
+		graph.addNode("Node_2", nodeData2);
 
-		System.out.println(jsonGraph);
+		Multimap<String, String> node = graph.getNode("Node_1");
 
-		graph.addNode("123", jsonGraph);
+		System.out.println(node.get("nodeId"));
 
-		Versioned<Collection<String>> node = (Versioned<Collection<String>>) graph.getNode("123");
+//		graph.addRelation()
 
-		System.out.println(node.value());
 	}
 }
