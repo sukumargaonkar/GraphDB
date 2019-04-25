@@ -16,7 +16,7 @@ import io.atomix.primitive.protocol.ProxyProtocol;
 import io.atomix.utils.time.Versioned;
 
 public class GraphModel<K, V> {
-	
+
 	private final static Logger logger = Logger.getLogger(GraphModel.class);
 
 	private AtomicMapBuilder<K, V> nodesMapBuilder;

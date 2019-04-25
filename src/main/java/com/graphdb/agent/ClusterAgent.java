@@ -23,7 +23,7 @@ public class ClusterAgent {
 	private final static String HOST = "localhost";
 	private final static int PORT = 8800;
 
-	public static Atomix getDefaultAgent(String member, String portID, boolean isClient) {
+	public static Atomix getDefaultAgent(String member, String portID) {
 
 		logger.info("Creating Atomix configuration");
 
@@ -35,17 +35,18 @@ public class ClusterAgent {
 			nodes[i] = Member.builder().withId(members[i]).withAddress(new Address(HOST, PORT + i)).build();
 		}
 
-		AtomixBuilder atomixBuilder = Atomix.builder().withMemberId(member).withAddress(new Address(HOST, Integer.parseInt(portID)))
+		AtomixBuilder atomixBuilder = Atomix.builder().withMemberId(member)
+				.withAddress(new Address(HOST, Integer.parseInt(portID)))
 				.withMembershipProvider(BootstrapDiscoveryProvider.builder().withNodes(nodes).build());
 
-		if(!isClient) {
-			atomixBuilder.withManagementGroup(RaftPartitionGroup.builder(MANAGEMENT_PARTITION_NAME)
-					.withDataDirectory(new File(clusterProps.getProperty("managementData") + member))
-					.withNumPartitions(1).withMembers(members).build())
-					.withPartitionGroups(RaftPartitionGroup.builder(PARTITION_GROUP_NAME)
-							.withDataDirectory(new File(clusterProps.getProperty("propertyData") + member))
-							.withPartitionSize(2).withNumPartitions(10).withMembers(members).build());
-		}
+		atomixBuilder
+				.withManagementGroup(RaftPartitionGroup.builder(MANAGEMENT_PARTITION_NAME)
+						.withDataDirectory(new File(clusterProps.getProperty("managementData") + member))
+						.withNumPartitions(1).withMembers(members).build())
+				.withPartitionGroups(RaftPartitionGroup.builder(PARTITION_GROUP_NAME)
+						.withDataDirectory(new File(clusterProps.getProperty("propertyData") + member))
+						.withPartitionSize(2).withNumPartitions(10).withMembers(members).build());
+
 		return atomixBuilder.build();
 	}
 }

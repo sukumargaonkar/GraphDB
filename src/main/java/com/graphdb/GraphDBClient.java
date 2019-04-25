@@ -28,7 +28,7 @@ public class GraphDBClient {
 		logger.info("Client starting....");
 
 		String clientAddress = args[0];
-		
+
 		if (Objects.isNull(clientAddress)) {
 			clientAddress = "localhost:8084";
 		}
