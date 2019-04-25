@@ -2,8 +2,11 @@ package com.graphdb.model;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.log4j.Logger;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+
 import io.atomix.core.Atomix;
 import io.atomix.core.idgenerator.AtomicIdGenerator;
 import io.atomix.core.map.AsyncAtomicMap;
@@ -13,6 +16,8 @@ import io.atomix.primitive.protocol.ProxyProtocol;
 import io.atomix.utils.time.Versioned;
 
 public class GraphModel<K, V> {
+	
+	private final static Logger logger = Logger.getLogger(GraphModel.class);
 
 	private AtomicMapBuilder<K, V> nodesMapBuilder;
 	private AtomicMapBuilder<Long, Relation> relationsMapBuilder;
@@ -29,7 +34,7 @@ public class GraphModel<K, V> {
 
 	private static AtomicIdGenerator relationsIdGenerator;
 
-	class Relation {
+	private class Relation {
 		long id;
 		K from;
 		K to;
@@ -92,25 +97,12 @@ public class GraphModel<K, V> {
 
 	public CompletableFuture<?> addNodeAsync(K key, V value) {
 		if (!nodes.containsKey(key)) {
+			nodes.put(key, value);
 			return asyncNodesMap.put(key, value);
 		} else {
-			throw new RuntimeException("Node already exists.");
-		}
-	}
-
-	public V getNode(K key) {
-		if (nodes.containsKey(key)) {
-			return nodes.get(key).value();
-		} else {
-			throw new RuntimeException("Value for key : " + key + " does not exist");
-		}
-	}
-
-	public CompletableFuture<Versioned<V>> getNodeAsync(K key) {
-		if (nodes.containsKey(key)) {
-			return asyncNodesMap.get(key);
-		} else {
-			throw new RuntimeException("Node already exists.");
+			CompletableFuture<?> future = new CompletableFuture();
+			future.completeExceptionally(new Exception("Node already exists."));
+			return future;
 		}
 	}
 
@@ -134,6 +126,24 @@ public class GraphModel<K, V> {
 		from2TypeMap.get(from).value().put(type, relation.id);
 
 		return true;
+	}
+
+	public V getNode(K key) {
+		if (nodes.containsKey(key)) {
+			return nodes.get(key).value();
+		} else {
+			return null;
+		}
+	}
+
+	public CompletableFuture<Versioned<V>> getNodeAsync(K key) {
+		if (nodes.containsKey(key)) {
+			return asyncNodesMap.get(key);
+		} else {
+			CompletableFuture<Versioned<V>> future = new CompletableFuture<Versioned<V>>();
+			future.completeExceptionally(new Exception("Node already exists."));
+			return future;
+		}
 	}
 
 }

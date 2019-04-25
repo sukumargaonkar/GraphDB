@@ -4,15 +4,9 @@ import java.util.Objects;
 
 import org.apache.log4j.Logger;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.graphdb.agent.ClusterAgent;
-import com.graphdb.model.GraphModel;
 
 import io.atomix.core.Atomix;
-import io.atomix.primitive.protocol.ProxyProtocol;
-import io.atomix.protocols.raft.MultiRaftProtocol;
-import io.atomix.protocols.raft.ReadConsistency;
 
 public class GraphDBApplication {
 
@@ -28,7 +22,7 @@ public class GraphDBApplication {
 
 		logger.info("Member ID:" + memberID + " memberPort:" + memberPort);
 
-		Atomix clusterAgent = ClusterAgent.getDefaultAgent(memberID, memberPort, false);
+		Atomix clusterAgent = ClusterAgent.getDefaultAgent(memberID, memberPort);
 
 		logger.info("Starting Cluster!");
 
