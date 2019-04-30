@@ -1,9 +1,11 @@
 package com.graphdb.model;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
@@ -15,9 +17,9 @@ import io.atomix.core.map.AtomicMapBuilder;
 import io.atomix.primitive.protocol.ProxyProtocol;
 import io.atomix.utils.time.Versioned;
 
-public class GraphModel<K, V> {
+public class GraphModelImpl<K, V> implements Graph<K, V> {
 
-	private final static Logger logger = Logger.getLogger(GraphModel.class);
+	private final static Logger logger = Logger.getLogger(GraphModelImpl.class);
 
 	private AtomicMapBuilder<K, V> nodesMapBuilder;
 	private AtomicMapBuilder<Long, Relation> relationsMapBuilder;
@@ -34,23 +36,7 @@ public class GraphModel<K, V> {
 
 	private static AtomicIdGenerator relationsIdGenerator;
 
-	private class Relation {
-		long id;
-		K from;
-		K to;
-		V data;
-		boolean biDirectional;
-
-		public Relation(long id, K from, K to, V data, boolean biDirectional) {
-			this.id = id;
-			this.from = from;
-			this.to = to;
-			this.data = data;
-			this.biDirectional = biDirectional;
-		}
-	}
-
-	public GraphModel(Atomix atomix, String name) {
+	public GraphModelImpl(Atomix atomix, String name) {
 		nodesMapBuilder = atomix.<K, V>atomicMapBuilder(name + "_nodes").withCacheEnabled();
 		relationsMapBuilder = atomix.<Long, Relation>atomicMapBuilder(name + "_relations").withCacheEnabled();
 		from2ToBuilder = atomix.<K, Multimap<K, Long>>atomicMapBuilder(name + "_from2To").withCacheEnabled();
@@ -86,6 +72,10 @@ public class GraphModel<K, V> {
 		asyncFrom2TypeMap = from2TypeMap.async();
 	}
 
+	private long generateId() {
+		return relationsIdGenerator.nextId();
+	}
+
 	public boolean addNode(K key, V value) {
 		if (!nodes.containsKey(key)) {
 			nodes.put(key, value);
@@ -106,33 +96,34 @@ public class GraphModel<K, V> {
 		}
 	}
 
-	public boolean addRelation(K from, K to, String type, V value, boolean biDirectional) {
+	public long addRelation(K from, K to, String type, V value, boolean biDirectional) {
 
 		if (!nodes.containsKey(from) || !nodes.containsKey(to)) {
-			return false;
+			return -1;
 		}
 
 //		Create Relation Object
-		Relation relation = new Relation(relationsIdGenerator.nextId(), from, to, value, biDirectional);
-		relationsMap.put(relation.id, relation);
+		Relation<K, V> relation = new Relation<>(generateId(), from, to, value, biDirectional);
+		relationsMap.put(relation.getId(), relation);
 
 //		Add Index to the Relation Object
 		if (!from2toMap.containsKey(from))
 			from2toMap.put(from, ArrayListMultimap.create());
-		from2toMap.get(from).value().put(to, relation.id);
+		from2toMap.get(from).value().put(to, relation.getId());
 
 		if (!from2TypeMap.containsKey(from))
 			from2TypeMap.put(from, ArrayListMultimap.create());
-		from2TypeMap.get(from).value().put(type, relation.id);
+		from2TypeMap.get(from).value().put(type, relation.getId());
 
-		return true;
+		return relation.getId();
 	}
 
-	public V getNode(K key) {
+	@SuppressWarnings("unchecked")
+	public Optional<V> getNode(K key) {
 		if (nodes.containsKey(key)) {
-			return nodes.get(key).value();
+			return Optional.fromNullable(nodes.get(key).value());
 		} else {
-			return null;
+			return Optional.absent();
 		}
 	}
 
@@ -144,6 +135,90 @@ public class GraphModel<K, V> {
 			future.completeExceptionally(new Exception("Node already exists."));
 			return future;
 		}
+	}
+
+	@Override
+	public boolean removeNode(K key) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean removeRelation(long id) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean removeRelation(K from, K to, String type) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Relation<K, V> getRelationById(long relationId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getRelationType(K from, K to) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public long getNodeDegree(K key) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public long getNodeDegree(long id) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public List<Relation<K, V>> getOutgoingRelations(K from) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Relation<K, V>> getOutgoingRelations(long relationId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Long> getOutgoingRelationNodes(K from) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Relation<K, V>> getIncomingRelations(K from) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Relation<K, V>> getIncomingRelations(long relationId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Long> getIncomingRelationNodes(K from) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean areRelated(K from, K to) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }
