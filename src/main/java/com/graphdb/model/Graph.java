@@ -28,26 +28,22 @@ public interface Graph<K, V> {
 
 	public boolean removeRelation(K from, K to, String type, boolean biDirectional);
 
-	public Relation<K, V> getRelationById(long relationId);
+	public Relation getRelationById(long relationId);
 
-	public String getRelationType(K from, K to);
+	public List<String> getRelationType(K from, K to);
 
 	public long getNodeDegree(K from);
 
-	public long getNodeDegree(long id);
+	public List<Relation> getOutgoingRelations(K from);
 
-	public List<Relation<K, V>> getOutgoingRelations(K from);
+	public List<Relation> getOutgoingRelations(K from, String type);
 
-	public List<Relation<K, V>> getOutgoingRelations(long relationId);
+	public List<Relation> getIncomingRelations(K from);
 
-	public List<Long> getOutgoingRelationNodes(K from);
-
-	public List<Relation<K, V>> getIncomingRelations(K from);
-
-	public List<Relation<K, V>> getIncomingRelations(long relationId);
-
-	public List<Long> getIncomingRelationNodes(K from);
+	public List<Relation> getIncomingRelationNodes(K from, String type);
 
 	public boolean areRelated(K from, K to);
+	
+	public Relation getRelation(long relationId);
 
 }

@@ -5,14 +5,12 @@ public class Relation<K, V> {
 	private long id;
 	private K from;
 	private K to;
-	private boolean biDirectional;
 	private V value;
 
-	public Relation(long id, K from, K to, V value, boolean biDirectional) {
+	public Relation(long id, K from, K to, V value) {
 		this.id = id;
 		this.from = from;
 		this.to = to;
-		this.biDirectional = biDirectional;
 		this.value = value;
 	}
 
@@ -46,14 +44,6 @@ public class Relation<K, V> {
 
 	public void setTo(K to) {
 		this.to = to;
-	}
-
-	public boolean isBiDirectional() {
-		return biDirectional;
-	}
-
-	public void setBiDirectional(boolean biDirectional) {
-		this.biDirectional = biDirectional;
 	}
 
 }
