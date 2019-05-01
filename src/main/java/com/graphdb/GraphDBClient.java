@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.graphdb.agent.JsonAgent;
+import com.graphdb.model.Graph;
 import com.graphdb.model.GraphModelImpl;
 
 import io.atomix.cluster.Node;
@@ -47,7 +48,7 @@ public class GraphDBClient {
 
 		logger.info("Client started....");
 
-		GraphModelImpl<String, String> graph = new GraphModelImpl<>(atomixAgent, "multimap");
+		Graph<String, String> graph = new GraphModelImpl<>(atomixAgent, "multimap");
 		ProxyProtocol protocol = MultiRaftProtocol.builder().withReadConsistency(ReadConsistency.LINEARIZABLE).build();
 		graph.withProtocol(protocol);
 		graph.buildAtomicMultiMap();

@@ -1,12 +1,15 @@
 package com.graphdb.model;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import io.atomix.core.Atomix;
@@ -96,10 +99,10 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		}
 	}
 
-	public long addRelation(K from, K to, String type, V value, boolean biDirectional) {
+	public List<Long> addRelation(K from, K to, String type, V value, boolean biDirectional) {
 
 		if (!nodes.containsKey(from) || !nodes.containsKey(to)) {
-			return -1;
+			return null;
 		}
 
 //		Create Relation Object
@@ -107,18 +110,38 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		relationsMap.put(relation.getId(), relation);
 
 //		Add Index to the Relation Object
-		if (!from2toMap.containsKey(from))
+		if (!from2toMap.containsKey(from)) {
 			from2toMap.put(from, ArrayListMultimap.create());
-		from2toMap.get(from).value().put(to, relation.getId());
+		} else {
+			from2toMap.get(from).value().put(to, relation.getId());
+		}
 
-		if (!from2TypeMap.containsKey(from))
+		if (!from2TypeMap.containsKey(from)) {
 			from2TypeMap.put(from, ArrayListMultimap.create());
-		from2TypeMap.get(from).value().put(type, relation.getId());
+		} else {
+			from2TypeMap.get(from).value().put(type, relation.getId());
+		}
 
-		return relation.getId();
+		long reverseLookupId;
+		if (biDirectional) {
+			reverseLookupId = generateId();
+			if (!from2toMap.containsKey(to)) {
+				from2toMap.put(to, ArrayListMultimap.create());
+			} else {
+				from2toMap.get(to).value().put(from, reverseLookupId);
+			}
+
+			if (!from2TypeMap.containsKey(to)) {
+				from2TypeMap.put(to, ArrayListMultimap.create());
+			} else {
+				from2TypeMap.get(to).value().put(type, reverseLookupId);
+			}
+			return Arrays.asList(relation.getId(), reverseLookupId);
+		}
+
+		return Arrays.asList(relation.getId());
 	}
 
-	@SuppressWarnings("unchecked")
 	public Optional<V> getNode(K key) {
 		if (nodes.containsKey(key)) {
 			return Optional.fromNullable(nodes.get(key).value());
@@ -139,25 +162,115 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 	@Override
 	public boolean removeNode(K key) {
-		// TODO Auto-generated method stub
-		return false;
+
+		boolean error = false;
+
+		if (nodes.containsKey(key)) {
+			nodes.remove(key);
+		} else {
+			logger.error(String.format("Node with key % not found", key));
+			error = true;
+		}
+
+		// Remove node from both fromMap and typeMap
+		if (from2toMap.containsKey(key)) {
+			from2toMap.remove(key);
+		} else {
+			logger.error(String.format("Graph node with key : % not found", key));
+			error = true;
+		}
+
+		if (from2TypeMap.containsKey(key)) {
+			from2TypeMap.remove(key);
+		} else {
+			logger.error(String.format("Graph type node with key : % not found", key));
+			error = true;
+		}
+
+		for (Entry<Long, Versioned<Relation>> e : relationsMap.entrySet()) {
+			Relation rel = e.getValue().value();
+			if (rel.getFrom().equals(key) || rel.getTo().equals(key)) {
+				relationsMap.remove(rel.getId());
+			}
+		}
+
+		if (error) {
+			return false;
+		}
+
+		return true;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public boolean removeRelation(long id) {
-		// TODO Auto-generated method stub
+		if (relationsMap.containsKey(id)) {
+			Relation relation = relationsMap.get(id).value();
+			if (from2toMap.containsKey((K) relation.getFrom())) {
+				from2toMap.remove((K) relation.getFrom());
+			}
+			if (from2TypeMap.containsKey((K) relation.getFrom())) {
+				from2TypeMap.remove((K) relation.getFrom());
+			}
+			relationsMap.remove(id);
+			return true;
+		}
+		logger.error(String.format("Relation id:% not found", id));
 		return false;
 	}
 
 	@Override
-	public boolean removeRelation(K from, K to, String type) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean removeRelation(K from, K to, String type, boolean biDirectional) {
+		logger.info("Inside remove relation by from,to,type");
+		boolean error = false;
+
+		if (from2toMap.containsKey(from)) {
+			from2toMap.remove(from);
+		} else {
+			error = true;
+			logger.error(String.format("Relation with key: % not found", from));
+		}
+		if (from2TypeMap.containsKey(from)) {
+			Multimap<String, Long> typeMap = from2TypeMap.get(from).value();
+			if (typeMap.containsKey(type)) {
+				typeMap.removeAll(type);
+			}
+		} else {
+			error = true;
+			logger.error(String.format("Relation with key: % not found", from));
+		}
+
+		if (biDirectional) {
+			if (from2toMap.containsKey(to)) {
+				from2toMap.remove(to);
+			} else {
+				error = true;
+				logger.error(String.format("Relation with key: % not found", to));
+			}
+			if (from2TypeMap.containsKey(to)) {
+				Multimap<String, Long> typeMap = from2TypeMap.get(to).value();
+				if (typeMap.containsKey(type)) {
+					typeMap.removeAll(type);
+				}
+			} else {
+				error = true;
+				logger.error(String.format("Relation with key: % not found", to));
+			}
+		}
+
+		if (error) {
+			logger.error("Something catastrophic please DEBUG ME");
+			return false;
+		}
+		return true;
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public Relation<K, V> getRelationById(long relationId) {
-		// TODO Auto-generated method stub
+	public Relation getRelationById(long relationId) {
+		if (relationsMap.containsKey(relationId)) {
+			return relationsMap.get(relationId).value();
+		}
 		return null;
 	}
 

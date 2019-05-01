@@ -22,17 +22,17 @@ public interface Graph<K, V> {
 
 	public Optional<V> getNode(K key);
 
-	public long addRelation(K from, K to, String type, V value, boolean biDirectional);
+	public List<Long> addRelation(K from, K to, String type, V value, boolean biDirectional);
 
 	public boolean removeRelation(long id);
 
-	public boolean removeRelation(K from, K to, String type);
+	public boolean removeRelation(K from, K to, String type, boolean biDirectional);
 
 	public Relation<K, V> getRelationById(long relationId);
 
 	public String getRelationType(K from, K to);
 
-	public long getNodeDegree(K key);
+	public long getNodeDegree(K from);
 
 	public long getNodeDegree(long id);
 
