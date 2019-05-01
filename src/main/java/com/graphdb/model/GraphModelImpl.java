@@ -381,6 +381,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 	@Override
 	public Relation getRelation(long relationId) {
+		logger.info("Inside getRelation");
 		if (relationsMap.containsKey(relationId)) {
 			return relationsMap.get(relationId).value();
 		}
