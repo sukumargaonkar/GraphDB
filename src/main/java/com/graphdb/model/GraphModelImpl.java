@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -96,13 +96,13 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 //		Add Index to the Relation Object
 		if (!from2toMap.containsKey(from)) {
-			from2toMap.put(from, ArrayListMultimap.create());
+			from2toMap.put(from, HashMultimap.create());
 		} else {
 			from2toMap.get(from).value().put(to, relation.getId());
 		}
 
 		if (!from2TypeMap.containsKey(from)) {
-			from2TypeMap.put(from, ArrayListMultimap.create());
+			from2TypeMap.put(from, HashMultimap.create());
 		} else {
 			from2TypeMap.get(from).value().put(type, relation.getId());
 		}
@@ -111,13 +111,13 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		if (biDirectional) {
 			reverseLookupId = generateId();
 			if (!from2toMap.containsKey(to)) {
-				from2toMap.put(to, ArrayListMultimap.create());
+				from2toMap.put(to, HashMultimap.create());
 			} else {
 				from2toMap.get(to).value().put(from, reverseLookupId);
 			}
 
 			if (!from2TypeMap.containsKey(to)) {
-				from2TypeMap.put(to, ArrayListMultimap.create());
+				from2TypeMap.put(to, HashMultimap.create());
 			} else {
 				from2TypeMap.get(to).value().put(type, reverseLookupId);
 			}
