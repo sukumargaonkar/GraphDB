@@ -8,7 +8,8 @@ public class JsonAgent<T> {
 	private static Gson gson;
 
 	public JsonAgent() {
-		gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
+		if (gson == null)
+			gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 	}
 
 	public String toJson(Object json) {
