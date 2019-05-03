@@ -248,7 +248,6 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		return relations;
 	}
 
-	@SuppressWarnings("rawtypes")
 	@Override
 	public List<String> getRelationType(K from, K to) {
 		logger.info("Inside getRelationType");
