@@ -1,9 +1,6 @@
 package com.graphdb.model;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
@@ -26,20 +23,20 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 	private AtomicMapBuilder<K, V> nodesMapBuilder;
 	private AtomicMapBuilder<Long, Relation> relationsMapBuilder;
-	private AtomicMapBuilder<K, Multimap<String, Long>> from2TypeBuilder;
-	private AtomicMapBuilder<K, Multimap<K, Long>> from2ToBuilder;
+	private AtomicMapBuilder<K, Map<String, Collection<Long>>> from2TypeBuilder;
+	private AtomicMapBuilder<K, Map<K, Collection<Long>>> from2ToBuilder;
 	private AtomicMap<K, V> nodes;
 	private AtomicMap<Long, Relation> relationsMap;
-	private AtomicMap<K, Multimap<String, Long>> from2TypeMap;
-	private AtomicMap<K, Multimap<K, Long>> from2toMap;
+	private AtomicMap<K, Map<String, Collection<Long>>> from2TypeMap;
+	private AtomicMap<K, Map<K, Collection<Long>>> from2ToMap;
 
 	private static AtomicIdGenerator relationsIdGenerator;
 
 	public GraphModelImpl(Atomix atomix, String name) {
 		nodesMapBuilder = atomix.<K, V>atomicMapBuilder(name + "_nodes").withCacheEnabled();
 		relationsMapBuilder = atomix.<Long, Relation>atomicMapBuilder(name + "_relations").withCacheEnabled();
-		from2ToBuilder = atomix.<K, Multimap<K, Long>>atomicMapBuilder(name + "_from2To").withCacheEnabled();
-		from2TypeBuilder = atomix.<K, Multimap<String, Long>>atomicMapBuilder(name + "_from2Type").withCacheEnabled();
+		from2ToBuilder = atomix.<K, Map<K, Collection<Long>>>atomicMapBuilder(name + "_from2To").withCacheEnabled();
+		from2TypeBuilder = atomix.<K, Map<String, Collection<Long>>>atomicMapBuilder(name + "_from2Type").withCacheEnabled();
 		relationsIdGenerator = atomix.getAtomicIdGenerator("relations_id_generator");
 	}
 
@@ -63,7 +60,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		nodes = nodesMapBuilder.build();
 
 		relationsMap = relationsMapBuilder.build();
-		from2toMap = from2ToBuilder.build();
+		from2ToMap = from2ToBuilder.build();
 		from2TypeMap = from2TypeBuilder.build();
 	}
 
@@ -72,17 +69,11 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 	}
 
 	public boolean addNode(K key, V value) {
-
-		logger.info("Inside addNode");
-		if (!nodes.containsKey(key)) {
-			nodes.put(key, value);
-			return true;
-		} else {
-			return false;
-		}
+		nodes.put(key, value);
+		return true;
 	}
 
-	public List<Long> addRelation(K from, K to, String type, V value, boolean biDirectional) {
+	public Long addRelation(K from, K to, String type, V value, boolean biDirectional) {
 
 		logger.info("Inside addRelation");
 
@@ -95,37 +86,56 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		relationsMap.put(relation.getId(), relation);
 
 //		Add Index to the Relation Object
-		if (!from2toMap.containsKey(from)) {
-			from2toMap.put(from, HashMultimap.create());
+		if (!from2ToMap.containsKey(from)) {
+			ArrayList<Long> listHolder = new ArrayList<>();
+			listHolder.add(relation.getId());
+			Map<K, Collection<Long>> mapHolder = new HashMap<>();
+			mapHolder.put(to, listHolder);
+
+			from2ToMap.put(from, mapHolder);
 		} else {
-			from2toMap.get(from).value().put(to, relation.getId());
+			from2ToMap.get(from).value().get(to).add(relation.getId());
 		}
 
 		if (!from2TypeMap.containsKey(from)) {
-			from2TypeMap.put(from, HashMultimap.create());
+			ArrayList<Long> listHolder = new ArrayList<>();
+			listHolder.add(relation.getId());
+			Map<String, Collection<Long>> mapHolder = new HashMap<>();
+			mapHolder.put(type, listHolder);
+
+			from2TypeMap.put(from, mapHolder);
 		} else {
-			from2TypeMap.get(from).value().put(type, relation.getId());
+			from2TypeMap.get(from).value().get(type).add(relation.getId());
 		}
 
-		long reverseLookupId;
 		if (biDirectional) {
-			reverseLookupId = generateId();
-			if (!from2toMap.containsKey(to)) {
-				from2toMap.put(to, HashMultimap.create());
+			if (!from2ToMap.containsKey(to)) {
+				ArrayList<Long> listHolder = new ArrayList<>();
+				listHolder.add(relation.getId());
+				Map<K, Collection<Long>> mapHolder = new HashMap<>();
+				mapHolder.put(from, listHolder);
+
+				from2ToMap.put(to, mapHolder);
 			} else {
-				from2toMap.get(to).value().put(from, reverseLookupId);
+				from2ToMap.get(to).value().get(from).add(relation.getId());
 			}
 
 			if (!from2TypeMap.containsKey(to)) {
-				from2TypeMap.put(to, HashMultimap.create());
+				ArrayList<Long> listHolder = new ArrayList<>();
+				listHolder.add(relation.getId());
+				Map<String, Collection<Long>> mapHolder = new HashMap<>();
+				mapHolder.put(type, listHolder);
+
+				from2TypeMap.put(to, mapHolder);
 			} else {
-				from2TypeMap.get(to).value().put(type, reverseLookupId);
+				from2TypeMap.get(to).value().get(type).add(relation.getId());
 			}
-			return Arrays.asList(relation.getId(), reverseLookupId);
 		}
 
-		return Arrays.asList(relation.getId());
+		return relation.getId();
 	}
+
+
 
 	public Optional<V> getNode(K key) {
 		logger.info("Inside getNode");
@@ -150,8 +160,8 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		}
 
 		// Remove node from both fromMap and typeMap
-		if (from2toMap.containsKey(key)) {
-			from2toMap.remove(key);
+		if (from2ToMap.containsKey(key)) {
+			from2ToMap.remove(key);
 		} else {
 			logger.error(String.format("Graph node with key : % not found", key));
 			error = true;
@@ -177,216 +187,216 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 		return true;
 	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@Override
-	public boolean removeRelation(long id) {
-		logger.info("Inside removeRelation");
-		if (relationsMap.containsKey(id)) {
-			Relation relation = relationsMap.get(id).value();
-			if (from2toMap.containsKey((K) relation.getFrom())) {
-				from2toMap.remove((K) relation.getFrom());
-			}
-			if (from2TypeMap.containsKey((K) relation.getFrom())) {
-				from2TypeMap.remove((K) relation.getFrom());
-			}
-			relationsMap.remove(id);
-			return true;
-		}
-		logger.error(String.format("Relation id:% not found", id));
-		return false;
-	}
-
-	@Override
-	public boolean removeRelation(K from, K to, String type, boolean biDirectional) {
-		logger.info("Inside remove relation by from,to,type");
-		boolean error = false;
-
-		if (from2toMap.containsKey(from)) {
-			from2toMap.remove(from);
-		} else {
-			error = true;
-			logger.error(String.format("Relation with key: % not found", from));
-		}
-		if (from2TypeMap.containsKey(from)) {
-			Multimap<String, Long> typeMap = from2TypeMap.get(from).value();
-			if (typeMap.containsKey(type)) {
-				typeMap.removeAll(type);
-			}
-		} else {
-			error = true;
-			logger.error(String.format("Relation with key: % not found", from));
-		}
-
-		if (biDirectional) {
-			if (from2toMap.containsKey(to)) {
-				from2toMap.remove(to);
-			} else {
-				error = true;
-				logger.error(String.format("Relation with key: % not found", to));
-			}
-			if (from2TypeMap.containsKey(to)) {
-				Multimap<String, Long> typeMap = from2TypeMap.get(to).value();
-				if (typeMap.containsKey(type)) {
-					typeMap.removeAll(type);
-				}
-			} else {
-				error = true;
-				logger.error(String.format("Relation with key: % not found", to));
-			}
-		}
-
-		if (error) {
-			logger.error("Something catastrophic please DEBUG ME");
-			return false;
-		}
-		return true;
-	}
-
-	@SuppressWarnings({ "unchecked", "rawtypes" })
-	@Override
-	public Relation getRelationById(long relationId) {
-		logger.info("Inside getRelationById");
-		if (relationsMap.containsKey(relationId)) {
-			return relationsMap.get(relationId).value();
-		}
-		return null;
-	}
-
-	@SuppressWarnings("rawtypes")
-	@Override
-	public List<String> getRelationType(K from, K to) {
-		logger.info("Inside getRelationType");
-		List<String> relationType = Lists.newArrayList();
-		for (Entry e : relationsMap.entrySet()) {
-			Relation rel = (Relation) e.getValue();
-			if (rel.getFrom().equals(from) && rel.getTo().equals(to)) {
-				if (from2TypeMap.containsKey(from)) {
-					Multimap<String, Long> relMap = from2TypeMap.get(from).value();
-					for (Map.Entry entry : relMap.asMap().entrySet()) {
-						if (entry.getValue().equals(rel.getId())) {
-							relationType.add((String) entry.getKey());
-						}
-					}
-				}
-			}
-		}
-		return null;
-	}
-
-	/*
-	 * calculate outdegree given a node
-	 */
-	@Override
-	public long getNodeDegree(K key) {
-		logger.info("Inside getNodeDegree");
-
-		if (from2toMap.containsKey(key)) {
-			Map<K, Collection<Long>> fromMap = from2toMap.get(key).value().asMap();
-			return fromMap.get(key).size();
-		} else {
-			logger.error(String.format("Node with key : % not found", key));
-		}
-		return -1;
-	}
-
-	@Override
-	public List<Relation> getOutgoingRelations(K from) {
-		logger.info("Inside getOutgoingRelations");
-		List<Relation> relations = Lists.newArrayList();
-		if (from2toMap.containsKey(from)) {
-			Multimap<K, Long> fromMap = from2toMap.get(from).value();
-			List<Long> relationIdList = (List<Long>) fromMap.values();
-			relationIdList.stream().forEach(e -> relations.add(relationsMap.get(e).value()));
-			return relations;
-		}
-		return null;
-	}
-
-	@Override
-	public List<Relation> getOutgoingRelations(K from, String type) {
-		logger.info("Inside getOutgoingRelationNodes");
-		List<Relation> relationsList = Lists.newArrayList();
-		if (from2toMap.containsKey(from)) {
-			Multimap<String, Long> fromMap = from2TypeMap.get(from).value();
-			if (fromMap.containsKey(type)) {
-				List<Long> fromList = (List<Long>) fromMap.values();
-				fromList.stream().forEach(t -> relationsList.add(relationsMap.get(t).value()));
-				return relationsList;
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public List<Relation> getIncomingRelations(K from) {
-		logger.info("Inside getIncomingRelations");
-		List<Relation> relationsList = Lists.newArrayList();
-		for (Entry<K, Versioned<Multimap<K, Long>>> e : from2toMap.entrySet()) {
-			Multimap<K, Long> toMap = e.getValue().value();
-			if (toMap.containsKey(from)) {
-				List<Long> toList = (List<Long>) toMap.get(from);
-				toList.stream().forEach(t -> relationsList.add(relationsMap.get(t).value()));
-			}
-		}
-		return relationsList.size() == 0 ? null : relationsList;
-	}
-
-	@Override
-	public List<Relation> getIncomingRelationNodes(K from, String type) {
-		logger.info("Inside getIncomingRelationNodes");
-
-		List<Relation> relationsList = Lists.newArrayList();
-		for (Entry<K, Versioned<Multimap<K, Long>>> e : from2toMap.entrySet()) {
-			Multimap<K, Long> toMap = e.getValue().value();
-			if (toMap.containsKey(from)) {
-				List<Long> toList = (List<Long>) toMap.get(from);
-				toList.stream().forEach(t -> relationsList.add(relationsMap.get(t).value()));
-			}
-		}
-
-		if (relationsList.size() == 0) {
-			logger.info("No incoming nodes");
-			return null;
-		}
-
-		for (Relation relation : relationsList) {
-			if (from2TypeMap.containsKey((K) relation.getFrom())) {
-				Multimap<String, Long> typeMap = from2TypeMap.get((K) relation.getFrom()).value();
-				if (!typeMap.containsEntry(type, relation.getId())) {
-					relationsList.remove(relation);
-				}
-			} else {
-				logger.error("Some catastrophe DEBUG HERE");
-				relationsList.remove(relation);
-			}
-		}
-		return relationsList.size() == 0 ? null : relationsList;
-	}
-
-	@Override
-	public boolean areRelated(K from, K to) {
-		logger.info("Inside areRelated");
-		if (from2toMap.containsKey(from)) {
-			Multimap<K, Long> fromMap = from2toMap.get(from).value();
-			if (fromMap.containsKey(from)) {
-				return true;
-			}
-		} else {
-			logger.error("Catastrophic shit!! DEBUG");
-			return false;
-		}
-		return false;
-	}
-
-	@Override
-	public Relation getRelation(long relationId) {
-		logger.info("Inside getRelation");
-		if (relationsMap.containsKey(relationId)) {
-			return relationsMap.get(relationId).value();
-		}
-		logger.error(String.format("Relation with id:% does not exist", relationId));
-		return null;
-	}
+//
+//	@SuppressWarnings({ "rawtypes", "unchecked" })
+//	@Override
+//	public boolean removeRelation(long id) {
+//		logger.info("Inside removeRelation");
+//		if (relationsMap.containsKey(id)) {
+//			Relation relation = relationsMap.get(id).value();
+//			if (from2ToMap.containsKey((K) relation.getFrom())) {
+//				from2ToMap.remove((K) relation.getFrom());
+//			}
+//			if (from2TypeMap.containsKey((K) relation.getFrom())) {
+//				from2TypeMap.remove((K) relation.getFrom());
+//			}
+//			relationsMap.remove(id);
+//			return true;
+//		}
+//		logger.error(String.format("Relation id:% not found", id));
+//		return false;
+//	}
+//
+//	@Override
+//	public boolean removeRelation(K from, K to, String type, boolean biDirectional) {
+//		logger.info("Inside remove relation by from,to,type");
+//		boolean error = false;
+//
+//		if (from2ToMap.containsKey(from)) {
+//			from2ToMap.remove(from);
+//		} else {
+//			error = true;
+//			logger.error(String.format("Relation with key: % not found", from));
+//		}
+//		if (from2TypeMap.containsKey(from)) {
+//			Multimap<String, Long> typeMap = from2TypeMap.get(from).value();
+//			if (typeMap.containsKey(type)) {
+//				typeMap.removeAll(type);
+//			}
+//		} else {
+//			error = true;
+//			logger.error(String.format("Relation with key: % not found", from));
+//		}
+//
+//		if (biDirectional) {
+//			if (from2ToMap.containsKey(to)) {
+//				from2ToMap.remove(to);
+//			} else {
+//				error = true;
+//				logger.error(String.format("Relation with key: % not found", to));
+//			}
+//			if (from2TypeMap.containsKey(to)) {
+//				Multimap<String, Long> typeMap = from2TypeMap.get(to).value();
+//				if (typeMap.containsKey(type)) {
+//					typeMap.removeAll(type);
+//				}
+//			} else {
+//				error = true;
+//				logger.error(String.format("Relation with key: % not found", to));
+//			}
+//		}
+//
+//		if (error) {
+//			logger.error("Something catastrophic please DEBUG ME");
+//			return false;
+//		}
+//		return true;
+//	}
+//
+//	@SuppressWarnings({ "unchecked", "rawtypes" })
+//	@Override
+//	public Relation getRelationById(long relationId) {
+//		logger.info("Inside getRelationById");
+//		if (relationsMap.containsKey(relationId)) {
+//			return relationsMap.get(relationId).value();
+//		}
+//		return null;
+//	}
+//
+//	@SuppressWarnings("rawtypes")
+//	@Override
+//	public List<String> getRelationType(K from, K to) {
+//		logger.info("Inside getRelationType");
+//		List<String> relationType = Lists.newArrayList();
+//		for (Entry e : relationsMap.entrySet()) {
+//			Relation rel = (Relation) e.getValue();
+//			if (rel.getFrom().equals(from) && rel.getTo().equals(to)) {
+//				if (from2TypeMap.containsKey(from)) {
+//					Multimap<String, Long> relMap = from2TypeMap.get(from).value();
+//					for (Entry<String, Collection<Long>> entry : relMap.asMap().entrySet()) {
+//						if (entry.getValue().equals(rel.getId())) {
+//							relationType.add(entry.getKey());
+//						}
+//					}
+//				}
+//			}
+//		}
+//		return null;
+//	}
+//
+//	/*
+//	 * calculate outdegree given a node
+//	 */
+//	@Override
+//	public long getNodeDegree(K key) {
+//		logger.info("Inside getNodeDegree");
+//
+//		if (from2ToMap.containsKey(key)) {
+//			Map<K, Collection<Long>> fromMap = from2ToMap.get(key).value().asMap();
+//			return fromMap.get(key).size();
+//		} else {
+//			logger.error(String.format("Node with key : % not found", key));
+//		}
+//		return -1;
+//	}
+//
+//	@Override
+//	public List<Relation> getOutgoingRelations(K from) {
+//		logger.info("Inside getOutgoingRelations");
+//		List<Relation> relations = Lists.newArrayList();
+//		if (from2ToMap.containsKey(from)) {
+//			Multimap<K, Long> fromMap = from2ToMap.get(from).value();
+//			List<Long> relationIdList = (List<Long>) fromMap.values();
+//			relationIdList.stream().forEach(e -> relations.add(relationsMap.get(e).value()));
+//			return relations;
+//		}
+//		return null;
+//	}
+//
+//	@Override
+//	public List<Relation> getOutgoingRelations(K from, String type) {
+//		logger.info("Inside getOutgoingRelationNodes");
+//		List<Relation> relationsList = Lists.newArrayList();
+//		if (from2ToMap.containsKey(from)) {
+//			Multimap<String, Long> fromMap = from2TypeMap.get(from).value();
+//			if (fromMap.containsKey(type)) {
+//				List<Long> fromList = (List<Long>) fromMap.values();
+//				fromList.stream().forEach(t -> relationsList.add(relationsMap.get(t).value()));
+//				return relationsList;
+//			}
+//		}
+//		return null;
+//	}
+//
+//	@Override
+//	public List<Relation> getIncomingRelations(K from) {
+//		logger.info("Inside getIncomingRelations");
+//		List<Relation> relationsList = Lists.newArrayList();
+//		for (Entry<K, Versioned<Multimap<K, Long>>> e : from2ToMap.entrySet()) {
+//			Multimap<K, Long> toMap = e.getValue().value();
+//			if (toMap.containsKey(from)) {
+//				List<Long> toList = (List<Long>) toMap.get(from);
+//				toList.stream().forEach(t -> relationsList.add(relationsMap.get(t).value()));
+//			}
+//		}
+//		return relationsList.size() == 0 ? null : relationsList;
+//	}
+//
+//	@Override
+//	public List<Relation> getIncomingRelationNodes(K from, String type) {
+//		logger.info("Inside getIncomingRelationNodes");
+//
+//		List<Relation> relationsList = Lists.newArrayList();
+//		for (Entry<K, Versioned<Multimap<K, Long>>> e : from2ToMap.entrySet()) {
+//			Multimap<K, Long> toMap = e.getValue().value();
+//			if (toMap.containsKey(from)) {
+//				List<Long> toList = (List<Long>) toMap.get(from);
+//				toList.stream().forEach(t -> relationsList.add(relationsMap.get(t).value()));
+//			}
+//		}
+//
+//		if (relationsList.size() == 0) {
+//			logger.info("No incoming nodes");
+//			return null;
+//		}
+//
+//		for (Relation relation : relationsList) {
+//			if (from2TypeMap.containsKey((K) relation.getFrom())) {
+//				Multimap<String, Long> typeMap = from2TypeMap.get((K) relation.getFrom()).value();
+//				if (!typeMap.containsEntry(type, relation.getId())) {
+//					relationsList.remove(relation);
+//				}
+//			} else {
+//				logger.error("Some catastrophe DEBUG HERE");
+//				relationsList.remove(relation);
+//			}
+//		}
+//		return relationsList.size() == 0 ? null : relationsList;
+//	}
+//
+//	@Override
+//	public boolean areRelated(K from, K to) {
+//		logger.info("Inside areRelated");
+//		if (from2ToMap.containsKey(from)) {
+//			Multimap<K, Long> fromMap = from2ToMap.get(from).value();
+//			if (fromMap.containsKey(from)) {
+//				return true;
+//			}
+//		} else {
+//			logger.error("Catastrophic shit!! DEBUG");
+//			return false;
+//		}
+//		return false;
+//	}
+//
+//	@Override
+//	public Relation getRelation(long relationId) {
+//		logger.info("Inside getRelation");
+//		if (relationsMap.containsKey(relationId)) {
+//			return relationsMap.get(relationId).value();
+//		}
+//		logger.error(String.format("Relation with id:% does not exist", relationId));
+//		return null;
+//	}
 
 }
