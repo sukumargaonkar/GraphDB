@@ -45,4 +45,6 @@ public interface Graph<K, V> {
 	public List<Relation> getIncomingRelations(K from, String type);
 
 	public boolean areRelated(K from, K to);
+
+	public List<K> search(K from, K to);
 }

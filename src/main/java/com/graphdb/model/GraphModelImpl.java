@@ -36,7 +36,8 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		nodesMapBuilder = atomix.<K, V>atomicMapBuilder(name + "_nodes").withCacheEnabled();
 		relationsMapBuilder = atomix.<Long, Relation>atomicMapBuilder(name + "_relations").withCacheEnabled();
 		from2ToBuilder = atomix.<K, Map<K, Collection<Long>>>atomicMapBuilder(name + "_from2To").withCacheEnabled();
-		from2TypeBuilder = atomix.<K, Map<String, Collection<Long>>>atomicMapBuilder(name + "_from2Type").withCacheEnabled();
+		from2TypeBuilder = atomix.<K, Map<String, Collection<Long>>>atomicMapBuilder(name + "_from2Type")
+				.withCacheEnabled();
 		relationsIdGenerator = atomix.getAtomicIdGenerator("relations_id_generator");
 	}
 
@@ -87,22 +88,16 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 //		Add Index to the Relation Object
 		if (!from2ToMap.containsKey(from)) {
-			ArrayList<Long> listHolder = new ArrayList<>();
-			listHolder.add(relation.getId());
 			Map<K, Collection<Long>> mapHolder = new HashMap<>();
-			mapHolder.put(to, listHolder);
-
+			mapHolder.put(to, Arrays.asList(relation.getId()));
 			from2ToMap.put(from, mapHolder);
 		} else {
 			from2ToMap.get(from).value().get(to).add(relation.getId());
 		}
 
 		if (!from2TypeMap.containsKey(from)) {
-			ArrayList<Long> listHolder = new ArrayList<>();
-			listHolder.add(relation.getId());
 			Map<String, Collection<Long>> mapHolder = new HashMap<>();
-			mapHolder.put(type, listHolder);
-
+			mapHolder.put(type, Arrays.asList(relation.getId()));
 			from2TypeMap.put(from, mapHolder);
 		} else {
 			from2TypeMap.get(from).value().get(type).add(relation.getId());
@@ -110,22 +105,16 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 		if (biDirectional) {
 			if (!from2ToMap.containsKey(to)) {
-				ArrayList<Long> listHolder = new ArrayList<>();
-				listHolder.add(relation.getId());
 				Map<K, Collection<Long>> mapHolder = new HashMap<>();
-				mapHolder.put(from, listHolder);
-
+				mapHolder.put(from, Arrays.asList(relation.getId()));
 				from2ToMap.put(to, mapHolder);
 			} else {
 				from2ToMap.get(to).value().get(from).add(relation.getId());
 			}
 
 			if (!from2TypeMap.containsKey(to)) {
-				ArrayList<Long> listHolder = new ArrayList<>();
-				listHolder.add(relation.getId());
 				Map<String, Collection<Long>> mapHolder = new HashMap<>();
-				mapHolder.put(type, listHolder);
-
+				mapHolder.put(type, Arrays.asList(relation.getId()));
 				from2TypeMap.put(to, mapHolder);
 			} else {
 				from2TypeMap.get(to).value().get(type).add(relation.getId());
@@ -199,7 +188,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 				from2TypeMap.remove((K) relation.getFrom());
 			}
 
-			if(relation.isBiDirectional()){
+			if (relation.isBiDirectional()) {
 				if (from2ToMap.containsKey((K) relation.getTo())) {
 					from2ToMap.remove((K) relation.getTo());
 				}
@@ -221,15 +210,15 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		boolean result = true;
 
 		List<Long> relsToDelete = new ArrayList<>();
-		if(from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)){
-			for(Long relId : from2ToMap.get(from).value().get(to)){
-				if(relationsMap.get(relId).value().getType().equals(type)){
+		if (from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)) {
+			for (Long relId : from2ToMap.get(from).value().get(to)) {
+				if (relationsMap.get(relId).value().getType().equals(type)) {
 					relsToDelete.add(relId);
 				}
 			}
 		}
 
-		for(Long relID : relsToDelete){
+		for (Long relID : relsToDelete) {
 //			Indicates if all the nodes were deleted or not.
 			result &= removeRelation(relID);
 		}
@@ -248,11 +237,11 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 	}
 
 	@Override
-	public List<Relation> getRelations(K from, K to){
+	public List<Relation> getRelations(K from, K to) {
 		logger.info("Inside getRelations(from,to)");
 		List<Relation> relations = Lists.newArrayList();
-		if(from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)){
-			for(Long relId : from2ToMap.get(from).value().get(to)){
+		if (from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)) {
+			for (Long relId : from2ToMap.get(from).value().get(to)) {
 				relations.add(relationsMap.get(relId).value());
 			}
 		}
@@ -264,8 +253,8 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 	public List<String> getRelationType(K from, K to) {
 		logger.info("Inside getRelationType");
 		List<String> relationTypes = Lists.newArrayList();
-		if(from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)){
-			for(Long relId : from2ToMap.get(from).value().get(to)){
+		if (from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)) {
+			for (Long relId : from2ToMap.get(from).value().get(to)) {
 				relationTypes.add(relationsMap.get(relId).value().getType());
 			}
 		}
@@ -279,8 +268,8 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 	public long getNodeOutDegree(K key) {
 		logger.info("Inside getNodeOutDegree");
 		long outDegree = 0;
-		if(from2ToMap.containsKey(key)){
-			for(Entry<K, Collection<Long>> entry : from2ToMap.get(key).value().entrySet()){
+		if (from2ToMap.containsKey(key)) {
+			for (Entry<K, Collection<Long>> entry : from2ToMap.get(key).value().entrySet()) {
 				outDegree += entry.getValue().size();
 			}
 			return outDegree;
@@ -294,8 +283,8 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		List<Relation> relations = Lists.newArrayList();
 		if (from2ToMap.containsKey(from)) {
 			Map<K, Collection<Long>> fromMap = from2ToMap.get(from).value();
-			for(Entry<K, Collection<Long>> entry : fromMap.entrySet()){
-				for(Long relId : entry.getValue()){
+			for (Entry<K, Collection<Long>> entry : fromMap.entrySet()) {
+				for (Long relId : entry.getValue()) {
 					relations.add(relationsMap.get(relId).value());
 				}
 			}
@@ -311,7 +300,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		if (from2ToMap.containsKey(from)) {
 			Map<String, Collection<Long>> fromMap = from2TypeMap.get(from).value();
 			if (fromMap.containsKey(type)) {
-				for(Long relId :fromMap.get(type)){
+				for (Long relId : fromMap.get(type)) {
 					relationsList.add(relationsMap.get(relId).value());
 				}
 				return relationsList;
@@ -342,8 +331,8 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		for (Entry<K, Versioned<Map<K, Collection<Long>>>> entry : from2ToMap.entrySet()) {
 			Map<K, Collection<Long>> toMap = entry.getValue().value();
 			if (toMap.containsKey(to)) {
-				for(Long relId : toMap.get(to)){
-					if(relationsMap.get(relId).value().getType().equals(type)){
+				for (Long relId : toMap.get(to)) {
+					if (relationsMap.get(relId).value().getType().equals(type)) {
 						relationsList.add(relationsMap.get(relId).value());
 					}
 				}
@@ -366,6 +355,15 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 			return false;
 		}
 		return false;
+	}
+	
+	/*
+	 * Return shortest path from a node to another
+	 * @return: A List of node keys in order
+	 */
+	@Override
+	public List<K> search(K from, K to) {
+		return null;
 	}
 
 }
