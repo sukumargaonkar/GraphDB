@@ -6,12 +6,21 @@ public class Relation<K, V> {
 	private K from;
 	private K to;
 	private V value;
+	private String type;
+	private boolean biDirectional;
 
-	public Relation(long id, K from, K to, V value) {
+	public Relation(long id, K from, K to, V value, String type, boolean biDirectional) {
 		this.id = id;
 		this.from = from;
 		this.to = to;
 		this.value = value;
+		this.type = type;
+		this.biDirectional = biDirectional;
+	}
+
+	@Override
+	public String toString() {
+		return from.toString() + (isBiDirectional()? " <" : " ") + "-- (ID:" + id + " , Type:" + type + " , BiDirectional:" + isBiDirectional() + ") --> " + to.toString();
 	}
 
 	public V getValue() {
@@ -26,24 +35,19 @@ public class Relation<K, V> {
 		return id;
 	}
 
-	public void setId(long id) {
-		this.id = id;
-	}
-
 	public K getFrom() {
 		return from;
-	}
-
-	public void setFrom(K from) {
-		this.from = from;
 	}
 
 	public K getTo() {
 		return to;
 	}
 
-	public void setTo(K to) {
-		this.to = to;
+	public String getType() {
+		return type;
 	}
 
+	public boolean isBiDirectional() {
+		return biDirectional;
+	}
 }

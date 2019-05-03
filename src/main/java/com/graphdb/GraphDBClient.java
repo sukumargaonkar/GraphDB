@@ -3,6 +3,8 @@ package com.graphdb;
 import java.util.Collection;
 import java.util.Map;
 
+import com.graphdb.model.Relation;
+import io.atomix.utils.time.Versioned;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.HashMultimap;
@@ -39,7 +41,8 @@ public class GraphDBClient {
 						.withNodes(Node.builder().withId("member1").withAddress("localhost:8080").build(),
 								Node.builder().withId("member2").withAddress("localhost:8081").build(),
 								Node.builder().withId("member3").withAddress("localhost:8082").build(),
-								Node.builder().withId("member4").withAddress("localhost:8083").build())
+								Node.builder().withId("member4").withAddress("localhost:8083").build()
+						)
 						.build());
 
 		Atomix atomixAgent = atomixBuilder.build();
@@ -60,21 +63,46 @@ public class GraphDBClient {
 		nodeData1.put("1", "fool");
 		nodeData1.put("1", "def");
 
-		String json = jsonAgent.toJson(nodeData1.asMap());
-		graph.addNode("node1", json);
+		String json1 = jsonAgent.toJson(nodeData1.asMap());
+
 
 		Multimap<String, String> nodeData2 = HashMultimap.create();
 		nodeData2.put("2", "abcsd");
 		nodeData2.put("2", "foolasd");
 		nodeData2.put("2", "defasd");
 
-		json = jsonAgent.toJson(nodeData2.asMap());
-		graph.addNode("node2", json);
+		String json2 = jsonAgent.toJson(nodeData2.asMap());
 
+		System.out.println("Adding node1");
+		graph.addNode("node1", json1);
+
+		System.out.println("Adding node2");
+		graph.addNode("node2", json2);
+
+		System.out.println("Adding relation node1 -> node2");
 		graph.addRelation("node1", "node2", "normal", "yo", true);
 
-		String node = graph.getNode("node1").get();
-		String node2 = graph.getNode("node2").get();
-		System.out.println(node + "\n" + "2:\n" + node2);
+		System.out.println("All Relations");
+		for(Map.Entry<Long, Versioned<Relation>> entry: ((GraphModelImpl<String, String>)graph).relationsMap.entrySet()){
+			System.out.println(entry.getValue().value());
+		}
+
+		System.out.println("graph.getRelations(\"node2\", \"node1\")");
+		System.out.println(graph.getRelations("node2", "node1"));
+
+		System.out.println("Adding relation node1 -> node2");
+		graph.addRelation("node1", "node2", "normal", "yo", true);
+
+		System.out.println("graph.getRelations(\"node2\", \"node1\")");
+		System.out.println(graph.getRelations("node2", "node1").size());
+
+		System.out.println("graph.getOutgoingRelations(\"node2\").size()");
+		System.out.println(graph.getOutgoingRelations("node2").size());
+
+		System.out.println("graph.getIncomingRelations(\"node2\").size()");
+		System.out.println(graph.getIncomingRelations("node2").size());
+
+		System.out.println("graph.areRelated(\"node1\", \"node2\")");
+		System.out.println(graph.areRelated("node1", "node2"));
 	}
 }
