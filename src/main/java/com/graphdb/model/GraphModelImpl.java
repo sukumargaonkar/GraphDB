@@ -1,14 +1,17 @@
 package com.graphdb.model;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 
 import io.atomix.core.Atomix;
 import io.atomix.core.idgenerator.AtomicIdGenerator;
@@ -63,7 +66,6 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		relationsMap = relationsMapBuilder.get();
 		from2ToMap = from2ToBuilder.get();
 		from2TypeMap = from2TypeBuilder.get();
-
 	}
 
 	private long generateId() {
@@ -253,7 +255,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 	public List<Relation> getRelations(K from, K to) {
 		logger.info("Inside getRelations(from,to)");
 		List<Relation> relations = Lists.newArrayList();
-		if (from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)) {
+		if (from2ToMap.containsKey(from) && from2ToMap.get(from).value().containsKey(to)) {
 			for (Long relId : from2ToMap.get(from).value().get(to)) {
 				relations.add(relationsMap.get(relId).value());
 			}
@@ -265,7 +267,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 	public List<String> getRelationType(K from, K to) {
 		logger.info("Inside getRelationType");
 		List<String> relationTypes = Lists.newArrayList();
-		if (from2ToMap.containsKey(from) & from2ToMap.get(from).value().containsKey(to)) {
+		if (from2ToMap.containsKey(from) && from2ToMap.get(from).value().containsKey(to)) {
 			for (Long relId : from2ToMap.get(from).value().get(to)) {
 				relationTypes.add(relationsMap.get(relId).value().getType());
 			}
@@ -368,13 +370,29 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		}
 		return false;
 	}
-	
+
 	/*
 	 * Return shortest path from a node to another
+	 * 
 	 * @return: A List of node keys in order
 	 */
 	@Override
 	public List<K> search(K from, K to) {
+		if (from2ToMap.containsKey(from)) {
+			List<K> visited = Lists.newArrayList();
+			Map<K, Collection<Long>> fromMap = from2ToMap.get(from).value();
+			if (fromMap.containsKey(to)) {
+				return Arrays.asList(to);
+			} else {
+				visited.add(from);
+				K current = from;
+				while (!current.equals(to)) {
+					for (Entry<K, Collection<Long>> e : fromMap.entrySet()) {
+
+					}
+				}
+			}
+		}
 		return null;
 	}
 
