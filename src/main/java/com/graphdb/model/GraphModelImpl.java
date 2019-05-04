@@ -38,7 +38,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		from2ToBuilder = atomix.<K, Map<K, Collection<Long>>>atomicMapBuilder(name + "_from2To").withCacheEnabled();
 		from2TypeBuilder = atomix.<K, Map<String, Collection<Long>>>atomicMapBuilder(name + "_from2Type")
 				.withCacheEnabled();
-		relationsIdGenerator = atomix.getAtomicIdGenerator("relations_id_generator");
+		relationsIdGenerator = atomix.getAtomicIdGenerator(name + "relations_id_generator");
 	}
 
 	public void withProtocol(ProxyProtocol protocol) {
@@ -58,11 +58,12 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 
 	public void buildAtomicMultiMap() {
 		logger.info("Building AtomicMultiMap");
-		nodes = nodesMapBuilder.build();
+		nodes = nodesMapBuilder.get();
 
-		relationsMap = relationsMapBuilder.build();
-		from2ToMap = from2ToBuilder.build();
-		from2TypeMap = from2TypeBuilder.build();
+		relationsMap = relationsMapBuilder.get();
+		from2ToMap = from2ToBuilder.get();
+		from2TypeMap = from2TypeBuilder.get();
+
 	}
 
 	private long generateId() {
@@ -92,7 +93,10 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 			mapHolder.put(to, Arrays.asList(relation.getId()));
 			from2ToMap.put(from, mapHolder);
 		} else {
-			from2ToMap.get(from).value().get(to).add(relation.getId());
+			Map<K, Collection<Long>> mapHolder = from2ToMap.get(from).value();
+			Collection<Long> listHolder = mapHolder.get(to);
+			listHolder.add(relation.getId());
+			from2ToMap.put(from, mapHolder);
 		}
 
 		if (!from2TypeMap.containsKey(from)) {
@@ -100,7 +104,10 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 			mapHolder.put(type, Arrays.asList(relation.getId()));
 			from2TypeMap.put(from, mapHolder);
 		} else {
-			from2TypeMap.get(from).value().get(type).add(relation.getId());
+			Map<String, Collection<Long>> mapHolder = from2TypeMap.get(from).value();
+			Collection<Long> listHolder = mapHolder.get(type);
+			listHolder.add(relation.getId());
+			from2TypeMap.put(from, mapHolder);
 		}
 
 		if (biDirectional) {
@@ -109,7 +116,10 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 				mapHolder.put(from, Arrays.asList(relation.getId()));
 				from2ToMap.put(to, mapHolder);
 			} else {
-				from2ToMap.get(to).value().get(from).add(relation.getId());
+				Map<K, Collection<Long>> mapHolder = from2ToMap.get(to).value();
+				Collection<Long> listHolder = mapHolder.get(from);
+				listHolder.add(relation.getId());
+				from2ToMap.put(to, mapHolder);
 			}
 
 			if (!from2TypeMap.containsKey(to)) {
@@ -117,7 +127,10 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 				mapHolder.put(type, Arrays.asList(relation.getId()));
 				from2TypeMap.put(to, mapHolder);
 			} else {
-				from2TypeMap.get(to).value().get(type).add(relation.getId());
+				Map<String, Collection<Long>> mapHolder = from2TypeMap.get(to).value();
+				Collection<Long> listHolder = mapHolder.get(type);
+				listHolder.add(relation.getId());
+				from2TypeMap.put(to, mapHolder);
 			}
 		}
 
@@ -319,7 +332,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 				toList.forEach(relId -> relationsList.add(relationsMap.get(relId).value()));
 			}
 		}
-		return relationsList.size() == 0 ? null : relationsList;
+		return relationsList;
 	}
 
 	@Override

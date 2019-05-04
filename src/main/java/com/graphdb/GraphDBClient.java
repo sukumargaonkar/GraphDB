@@ -65,7 +65,6 @@ public class GraphDBClient {
 
 		String json1 = jsonAgent.toJson(nodeData1.asMap());
 
-
 		Multimap<String, String> nodeData2 = HashMultimap.create();
 		nodeData2.put("2", "abcsd");
 		nodeData2.put("2", "foolasd");
@@ -78,31 +77,32 @@ public class GraphDBClient {
 
 		System.out.println("Adding node2");
 		graph.addNode("node2", json2);
-
+		System.out.println();
 		System.out.println("Adding relation node1 -> node2");
 		graph.addRelation("node1", "node2", "normal", "yo", true);
-
+		System.out.println();
+		System.out.println("graph.getRelations(\"node2\", \"node1\")");
+		System.out.println(graph.getRelations("node2", "node1"));
+		System.out.println();
+		System.out.println("Adding relation node1 -> node2");
+		graph.addRelation("node1", "node2", "normal", "yo", true);
+		System.out.println();
 		System.out.println("All Relations");
 		for(Map.Entry<Long, Versioned<Relation>> entry: ((GraphModelImpl<String, String>)graph).relationsMap.entrySet()){
 			System.out.println(entry.getValue().value());
 		}
-
-		System.out.println("graph.getRelations(\"node2\", \"node1\")");
-		System.out.println(graph.getRelations("node2", "node1"));
-
-		System.out.println("Adding relation node1 -> node2");
-		graph.addRelation("node1", "node2", "normal", "yo", true);
-
-		System.out.println("graph.getRelations(\"node2\", \"node1\")");
+		System.out.println();
+		System.out.println("graph.getRelations(\"node2\", \"node1\").size()");
 		System.out.println(graph.getRelations("node2", "node1").size());
-
+		System.out.println();
 		System.out.println("graph.getOutgoingRelations(\"node2\").size()");
 		System.out.println(graph.getOutgoingRelations("node2").size());
-
+		System.out.println();
 		System.out.println("graph.getIncomingRelations(\"node2\").size()");
 		System.out.println(graph.getIncomingRelations("node2").size());
-
+		System.out.println();
 		System.out.println("graph.areRelated(\"node1\", \"node2\")");
 		System.out.println(graph.areRelated("node1", "node2"));
+
 	}
 }
