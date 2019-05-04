@@ -4,9 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -379,46 +383,26 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 	@Override
 	public List<K> search(K from, K to) {
 		if (from2ToMap.containsKey(from)) {
-			List<K> visited = Lists.newArrayList();
-			Map<K, Collection<Long>> fromMap = from2ToMap.get(from).value();
-			int nodeSize = from2ToMap.get(from).value().size();
-			if (fromMap.containsKey(to)) {
-				return Arrays.asList(to);
-			} else {
-				List<K> path = Lists.newArrayList();
-				search(to, visited, path, from);
-			}
-		}
-		return null;
-	}
-
-	private void search(K to, List<K> visited, List<K> path, K current) {
-		if (visited.contains(current)) {
-			return;
-		} else {
-			visited.add(current);
-		}
-		if (current.equals(to)) {
-			return;
-		} else {
-			Map<K, Collection<Long>> fromMap = from2ToMap.get(current).value();
-			if (fromMap.keySet().contains(to)) {
-				return;
-			}
-			for (Entry<K, Collection<Long>> entry : fromMap.entrySet()) {
+			List<K> path = new ArrayList<>();
+			Queue<K> nodes = new LinkedList<K>();
+			nodes.offer(from);
+			while (!nodes.isEmpty()) {
+				if (nodes.peek().equals(to)) {
+					return path;
+				}
+				K current = nodes.poll();
 				path.add(current);
-				current = entry.getKey();
-				Collection<Long> currRelations = entry.getValue();
-				for (Long id : currRelations) {
-					Relation rel = relationsMap.get(id).value();
-					if (rel.getTo().equals(to)) {
-						return;
-					} else {
-						search(to, visited, path, current);
-					}
+				Map<K, Collection<Long>> fromMap = from2ToMap.get(current).value();
+				if (fromMap.containsKey(to)) {
+					path.add(to);
+					return path;
+				} else {
+					Set<K> neighbours = fromMap.keySet();
+					nodes.addAll(neighbours);
 				}
 			}
 		}
+		return null;
 	}
 
 }
