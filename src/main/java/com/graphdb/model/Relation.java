@@ -20,7 +20,8 @@ public class Relation<K, V> {
 
 	@Override
 	public String toString() {
-		return from.toString() + (isBiDirectional()? " <" : " ") + "-- (ID:" + id + " , Type:" + type + " , BiDirectional:" + isBiDirectional() + ") --> " + to.toString();
+		return from.toString() + (isBiDirectional() ? " <" : " ") + "-- (ID:" + id + " , Type:" + type
+				+ " , BiDirectional:" + isBiDirectional() + ") --> " + to.toString();
 	}
 
 	public V getValue() {

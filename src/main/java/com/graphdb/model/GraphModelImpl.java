@@ -381,19 +381,44 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		if (from2ToMap.containsKey(from)) {
 			List<K> visited = Lists.newArrayList();
 			Map<K, Collection<Long>> fromMap = from2ToMap.get(from).value();
+			int nodeSize = from2ToMap.get(from).value().size();
 			if (fromMap.containsKey(to)) {
 				return Arrays.asList(to);
 			} else {
-				visited.add(from);
-				K current = from;
-				while (!current.equals(to)) {
-					for (Entry<K, Collection<Long>> e : fromMap.entrySet()) {
+				List<K> path = Lists.newArrayList();
+				search(to, visited, path, from);
+			}
+		}
+		return null;
+	}
 
+	private void search(K to, List<K> visited, List<K> path, K current) {
+		if (visited.contains(current)) {
+			return;
+		} else {
+			visited.add(current);
+		}
+		if (current.equals(to)) {
+			return;
+		} else {
+			Map<K, Collection<Long>> fromMap = from2ToMap.get(current).value();
+			if (fromMap.keySet().contains(to)) {
+				return;
+			}
+			for (Entry<K, Collection<Long>> entry : fromMap.entrySet()) {
+				path.add(current);
+				current = entry.getKey();
+				Collection<Long> currRelations = entry.getValue();
+				for (Long id : currRelations) {
+					Relation rel = relationsMap.get(id).value();
+					if (rel.getTo().equals(to)) {
+						return;
+					} else {
+						search(to, visited, path, current);
 					}
 				}
 			}
 		}
-		return null;
 	}
 
 }
