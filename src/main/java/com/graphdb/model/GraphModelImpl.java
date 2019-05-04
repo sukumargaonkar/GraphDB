@@ -385,6 +385,7 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 		if (from2ToMap.containsKey(from)) {
 			List<K> path = new ArrayList<>();
 			Queue<K> nodes = new LinkedList<K>();
+			Set<K> visited = new HashSet<K>();
 			nodes.offer(from);
 			while (!nodes.isEmpty()) {
 				if (nodes.peek().equals(to)) {
@@ -398,7 +399,11 @@ public class GraphModelImpl<K, V> implements Graph<K, V> {
 					return path;
 				} else {
 					Set<K> neighbours = fromMap.keySet();
-					nodes.addAll(neighbours);
+					for (K node : neighbours) {
+						if (!visited.contains(node)) {
+							visited.add(node);
+						}
+					}
 				}
 			}
 		}
